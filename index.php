@@ -1,0 +1,157 @@
+<?php
+// Habilitar la visualización de errores para depuración
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+// Load the OLLAMA library
+require_once 'ollama.php';
+
+// Initialize the OLLAMA engine
+$ollama = new Ollama();
+
+// Define the path to the markdown files
+$markdown_dir = 'conversations';
+if (!file_exists($markdown_dir)) {
+    mkdir($markdown_dir, 0777, true);
+}
+
+// Get the current date for the conversation file
+$current_date = date('Y-m-d');
+$conversation_file = "$markdown_dir/$current_date.md";
+
+// Handle incoming messages
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (isset($data['model']) && isset($data['message'])) {
+        $selected_model = htmlspecialchars($data['model']);
+        $message = htmlspecialchars($data['message']);
+        
+        try {
+            $response = $ollama->generateResponse($selected_model, $message);
+            
+            // Append the conversation to the markdown file without HTML color tags
+            $conversation = "### $message\n\n**$selected_model:** $response\n\n";
+            file_put_contents($conversation_file, $conversation, FILE_APPEND);
+            
+            echo json_encode(['success' => true, 'response' => $response]);
+        } catch (Exception $e) {
+            error_log('Error in index.php: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        exit;
+    }
+}
+
+// List all the models
+$model_list = $ollama->getModelList();
+// Move Llama3.1 to the beginning of the list
+$llama31_key = array_search('llama3.1:latest', array_column($model_list, 'name'));
+if ($llama31_key !== false) {
+    $llama31 = $model_list[$llama31_key];
+    unset($model_list[$llama31_key]);
+    array_unshift($model_list, $llama31);
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ollama-php-conversations</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { background-color: #deddda; font-family: Arial, sans-serif; margin: 0; padding: 0; height: 94vh; display: flex; flex-direction: column; }
+        .container { min-width: 90%; margin: 0 auto; padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+        @media (max-width: 768px) { .container { max-width: 100%; } }
+        #chat-window { background-color: #e8e8e8; flex-grow: 1; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
+        #chat-input { width: 94%; padding: 10px; margin-bottom: 10px; }
+        #send-chat, #change-model { padding: 10px 20px; }
+        #model-select { padding: 10px; margin-bottom: 10px; }
+        .error { color: red; }
+        .user-message { color: red; }
+        pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; }
+        code { font-family: 'Courier New', Courier, monospace; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <select id="model-select">
+            <?php foreach ($model_list as $model): ?>
+                <option value="<?= htmlspecialchars($model['name']) ?>"><?= htmlspecialchars($model['name']) ?></option>
+            <?php endforeach; ?>
+        </select>
+        
+        <div id="chat-window"></div>
+        <textarea id="chat-input" placeholder="Type a message"></textarea>
+        <button id="send-chat">Send</button>
+    </div>
+
+    <script>
+        const chatWindow = document.getElementById('chat-window');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-chat');
+        const modelSelect = document.getElementById('model-select');
+        let currentModel = modelSelect.value; // Set default model to the first option (Llama3.1)
+
+        function appendMessage(sender, message, isError = false, isUser = false) {
+            const messageDiv = document.createElement('div');
+            if (isUser) {
+                messageDiv.innerHTML = `<strong class="user-message">### Usuario:</strong> <span class="user-message">${message}</span>`;
+            } else {
+                messageDiv.innerHTML = `<strong>${sender}:</strong> ${marked.parse(message)}`;
+            }
+            if (isError) {
+                messageDiv.classList.add('error');
+            }
+            chatWindow.appendChild(messageDiv);
+            chatWindow.appendChild(document.createElement('br')); // Add a line break after each message
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            hljs.highlightAll();
+        }
+
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (message) {
+                appendMessage('Usuario', message, false, true);
+                chatInput.value = '';
+
+                fetch('index.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ model: currentModel, message: message }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        appendMessage(currentModel, data.response);
+                    } else {
+                        appendMessage('Error', data.error, true);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    appendMessage('Error', 'Failed to send message: ' + error.message, true);
+                });
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        modelSelect.addEventListener('change', function() {
+            currentModel = modelSelect.value;
+            appendMessage('System', `Changed model to ${currentModel}`);
+        });
+    </script>
+</body>
+</html>
