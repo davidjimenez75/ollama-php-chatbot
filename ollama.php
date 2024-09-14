@@ -4,23 +4,56 @@ class Ollama {
     private $models;
     private $apiUrl = 'http://localhost:11434/api/generate';
 
+    // Constructor
     public function __construct() {
         $this->loadModels();
     }
 
+    // Load the list of available models
     private function loadModels() {
-        $this->models = [
-            ['name' => 'llama3:latest', 'description' => 'Llama 3 model'],
-            ['name' => 'llama3.1:latest', 'description' => 'Llama 3.1 model'],
-            ['name' => 'starcoder2:3b', 'description' => 'Starcoder 2 3B model'],
-            ['name' => 'nomic-embed-text:latest', 'description' => 'Nomic Embed Text model']
-        ];
+        $command = $this->getOllamaListCommand();
+        $output = shell_exec($command);
+        $this->models = $this->parseOllamaOutput($output);
     }
 
+    // Get the appropriate command to list Ollama models based on the operating system
+    private function getOllamaListCommand() {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // Windows command
+            return 'ollama list';
+        } else {
+            // Linux/Unix command
+            return 'ollama list 2>&1';
+        }
+    }
+
+    // Parse the output of the Ollama list command
+    private function parseOllamaOutput($output) {
+        $models = [];
+        $lines = explode("\n", trim($output));
+        
+        // Skip the header line
+        array_shift($lines);
+        
+        foreach ($lines as $line) {
+            $parts = preg_split('/\s+/', trim($line), 2);
+            if (count($parts) >= 2) {
+                $models[] = [
+                    'name' => $parts[0],
+                    'description' => $parts[1]
+                ];
+            }
+        }
+        
+        return $models;
+    }
+
+    // Get a list of available models
     public function getModelList() {
         return $this->models;
     }
 
+    // Generate a response from the Ollama API
     public function generateResponse($modelName, $prompt) {
         $data = [
             'model' => $modelName,
@@ -56,6 +89,16 @@ class Ollama {
             error_log('Invalid response from Ollama API: ' . $response);
             throw new Exception('Invalid response from Ollama API: ' . $response);
         }
+    }
+}
+
+// Test the Ollama class
+if (php_sapi_name() === 'cli') {
+    $ollama = new Ollama();
+    $models = $ollama->getModelList();
+    echo "Installed Ollama models:\n";
+    foreach ($models as $model) {
+        echo "{$model['name']} - {$model['description']}\n";
     }
 }
 
