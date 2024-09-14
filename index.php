@@ -162,7 +162,7 @@ if ($llama31_key !== false) {
         function appendMessage(sender, message, isError = false, isUser = false) {
             const messageDiv = document.createElement('div');
             if (isUser) {
-                messageDiv.innerHTML = `<strong class="user-message">### Usuario:</strong> <span class="user-message">${message}</span>`;
+                messageDiv.innerHTML = `<span class="user-message">${message}</span>`;
             } else {
                 messageDiv.innerHTML = `<strong>${sender}:</strong> ${marked.parse(message)}`;
             }
