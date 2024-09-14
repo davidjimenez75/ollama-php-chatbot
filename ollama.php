@@ -3,16 +3,21 @@
 class Ollama {
     private $models;
     private $apiUrl = 'http://localhost:11434/api/generate';
+    private $debug = false;
 
     // Constructor
-    public function __construct() {
+    public function __construct($debug = false) {
+        $this->debug = $debug;
         $this->loadModels();
     }
 
     // Load the list of available models
     private function loadModels() {
         $command = $this->getOllamaListCommand();
-        $output = shell_exec($command);
+        $output = $this->executeCommand($command);
+        if ($output === false) {
+            throw new Exception("Failed to execute Ollama list command. Please ensure Ollama is installed and accessible.");
+        }
         $this->models = $this->parseOllamaOutput($output);
     }
 
@@ -23,8 +28,21 @@ class Ollama {
             return 'ollama list';
         } else {
             // Linux/Unix command
-            return 'ollama list 2>&1';
+            return 'HOME=${HOME:-/root} ollama list 2>&1';
         }
+    }
+
+    // Execute a shell command safely and return its output
+    private function executeCommand($command) {
+        $output = shell_exec($command);
+        if ($output === null && !empty(error_get_last())) {
+            error_log("Error executing command: " . $command . ". Error: " . print_r(error_get_last(), true));
+            return false;
+        }
+        if ($this->debug) {
+            error_log("Raw output from Ollama command: " . $output);
+        }
+        return $output;
     }
 
     // Parse the output of the Ollama list command
@@ -36,13 +54,25 @@ class Ollama {
         array_shift($lines);
         
         foreach ($lines as $line) {
-            $parts = preg_split('/\s+/', trim($line), 2);
-            if (count($parts) >= 2) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            
+            // Parse the line using tab as delimiter
+            $parts = explode("\t", $line);
+            if (count($parts) >= 4) {
+                $modelName = trim($parts[0]);
+                $modelSize = trim($parts[2]);
+                $modelModified = trim($parts[3]);
+                
                 $models[] = [
-                    'name' => $parts[0],
-                    'description' => $parts[1]
+                    'name' => $modelName,
+                    'description' => "Size: $modelSize, Modified: $modelModified"
                 ];
             }
+        }
+        
+        if (empty($models)) {
+            error_log("No valid models found in Ollama output: " . $output);
         }
         
         return $models;
@@ -90,15 +120,43 @@ class Ollama {
             throw new Exception('Invalid response from Ollama API: ' . $response);
         }
     }
+
+    // Get debug information
+    public function getDebugInfo() {
+        return [
+            'raw_output' => $this->executeCommand($this->getOllamaListCommand()),
+            'parsed_models' => $this->models,
+            'os' => PHP_OS,
+            'command' => $this->getOllamaListCommand(),
+            'home_env' => getenv('HOME'),
+            'current_user' => get_current_user(),
+            'php_user' => exec('whoami')
+        ];
+    }
 }
 
 // Test the Ollama class
 if (php_sapi_name() === 'cli') {
-    $ollama = new Ollama();
-    $models = $ollama->getModelList();
-    echo "Installed Ollama models:\n";
-    foreach ($models as $model) {
-        echo "{$model['name']} - {$model['description']}\n";
+    try {
+        $ollama = new Ollama(true);  // Enable debug mode
+        $models = $ollama->getModelList();
+        echo "Installed Ollama models:\n";
+        foreach ($models as $model) {
+            echo "{$model['name']} - {$model['description']}\n";
+        }
+        
+        // Print debug info
+        $debugInfo = $ollama->getDebugInfo();
+        echo "\nDebug Information:\n";
+        echo "Raw output: " . $debugInfo['raw_output'] . "\n";
+        echo "Parsed models: " . print_r($debugInfo['parsed_models'], true) . "\n";
+        echo "OS: " . $debugInfo['os'] . "\n";
+        echo "Command: " . $debugInfo['command'] . "\n";
+        echo "HOME env: " . $debugInfo['home_env'] . "\n";
+        echo "Current user: " . $debugInfo['current_user'] . "\n";
+        echo "PHP user: " . $debugInfo['php_user'] . "\n";
+    } catch (Exception $e) {
+        echo "Error: " . $e->getMessage() . "\n";
     }
 }
 

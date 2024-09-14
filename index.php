@@ -6,8 +6,11 @@ error_reporting(E_ALL);
 // Load the OLLAMA library
 require_once 'ollama.php';
 
-// Initialize the OLLAMA engine
-$ollama = new Ollama();
+// Check if debug mode is enabled
+$debug_mode = isset($_GET['debug']) && $_GET['debug'] === 'true';
+
+// Initialize the OLLAMA engine with debug mode
+$ollama = new Ollama($debug_mode);
 
 // Define the path to the markdown files
 $markdown_dir = 'conversations';
@@ -51,6 +54,9 @@ if ($llama31_key !== false) {
     unset($model_list[$llama31_key]);
     array_unshift($model_list, $llama31);
 }
+
+// Get debug information if in debug mode
+$debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
 ?>
 
 <!DOCTYPE html>
@@ -135,6 +141,14 @@ if ($llama31_key !== false) {
             font-size: 24px;
             cursor: pointer;
         }
+        #debug-info {
+            background-color: var(--chat-bg);
+            border: 1px solid var(--text-color);
+            padding: 10px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
     </style>
 </head>
 <body>
@@ -149,6 +163,13 @@ if ($llama31_key !== false) {
         <div id="chat-window"></div>
         <textarea id="chat-input" placeholder="Type a message"></textarea>
         <button id="send-chat">Send</button>
+
+        <?php if ($debug_mode && $debug_info): ?>
+            <div id="debug-info">
+                <h3>Debug Information:</h3>
+                <pre><?= htmlspecialchars(print_r($debug_info, true)) ?></pre>
+            </div>
+        <?php endif; ?>
     </div>
 
     <script>
