@@ -63,20 +63,82 @@ if ($llama31_key !== false) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        body { background-color: #deddda; font-family: Arial, sans-serif; margin: 0; padding: 0; height: 94vh; display: flex; flex-direction: column; }
-        .container { min-width: 90%; margin: 0 auto; padding: 20px; flex-grow: 1; display: flex; flex-direction: column; }
+        :root {
+            --bg-color: #deddda;
+            --text-color: #333;
+            --chat-bg: #e8e8e8;
+            --code-bg: #f4f4f4;
+            --user-message-color: #800000;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #333;
+            --text-color: #f4f4f4;
+            --chat-bg: #444;
+            --code-bg: #222;
+            --user-message-color: #ff6b6b;
+        }
+
+        body { 
+            background-color: var(--bg-color); 
+            color: var(--text-color);
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            height: 94vh; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .container { 
+            min-width: 90%; 
+            margin: 0 auto; 
+            padding: 20px; 
+            flex-grow: 1; 
+            display: flex; 
+            flex-direction: column; 
+        }
         @media (max-width: 768px) { .container { max-width: 100%; } }
-        #chat-window { background-color: #e8e8e8; flex-grow: 1; border: 1px solid #ccc; overflow-y: scroll; padding: 10px; margin-bottom: 10px; }
-        #chat-input { width: 94%; padding: 10px; margin-bottom: 10px; }
+        #chat-window { 
+            background-color: var(--chat-bg); 
+            flex-grow: 1; 
+            border: 1px solid #ccc; 
+            overflow-y: scroll; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+        }
+        #chat-input { 
+            width: 94%; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+        }
         #send-chat, #change-model { padding: 10px 20px; }
-        #model-select { padding: 10px; margin-bottom: 10px; }
+        #model-select { 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--text-color);
+        }
         .error { color: red; }
-        .user-message { color: red; }
-        pre { background-color: #f4f4f4; padding: 10px; border-radius: 5px; }
+        .user-message { color: var(--user-message-color); }
+        pre { background-color: var(--code-bg); padding: 10px; border-radius: 5px; }
         code { font-family: 'Courier New', Courier, monospace; }
+        #theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: -10px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <button id="theme-toggle">💡</button>
     <div class="container">
         <select id="model-select">
             <?php foreach ($model_list as $model): ?>
@@ -94,6 +156,7 @@ if ($llama31_key !== false) {
         const chatInput = document.getElementById('chat-input');
         const sendButton = document.getElementById('send-chat');
         const modelSelect = document.getElementById('model-select');
+        const themeToggle = document.getElementById('theme-toggle');
         let currentModel = modelSelect.value; // Set default model to the first option (Llama3.1)
 
         function appendMessage(sender, message, isError = false, isUser = false) {
@@ -151,6 +214,36 @@ if ($llama31_key !== false) {
         modelSelect.addEventListener('change', function() {
             currentModel = modelSelect.value;
             appendMessage('System', `Changed model to ${currentModel}`);
+        });
+
+        // Theme toggle functionality
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('theme', theme);
+            themeToggle.textContent = theme === 'light' ? '💡' : '🌙';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            setTheme(newTheme);
+        });
+
+        // Check for saved theme preference or use system preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            setTheme('dark');
+        } else {
+            setTheme('light');
+        }
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (!localStorage.getItem('theme')) {
+                setTheme(e.matches ? 'dark' : 'light');
+            }
         });
     </script>
 </body>
