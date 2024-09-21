@@ -161,7 +161,7 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
         </select>
         
         <div id="chat-window"></div>
-        <textarea id="chat-input" placeholder="Type a message"></textarea>
+        <textarea id="chat-input" placeholder="Type a message"  rows="13"></textarea>
         <button id="send-chat">Send</button>
 
         <?php if ($debug_mode && $debug_info): ?>
@@ -183,6 +183,7 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
         function appendMessage(sender, message, isError = false, isUser = false) {
             const messageDiv = document.createElement('div');
             if (isUser) {
+                message = message.replace(/\r\n|\n/g, '<br>');
                 messageDiv.innerHTML = `<span class="user-message">${message}</span>`;
             } else {
                 messageDiv.innerHTML = `<strong>${sender}:</strong> ${marked.parse(message)}`;
