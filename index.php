@@ -1,4 +1,4 @@
-<?php
+ñ<?php
 // Habilitar la visualización de errores para depuración
 ini_set('display_errors', 1);
 error_reporting(E_ALL);

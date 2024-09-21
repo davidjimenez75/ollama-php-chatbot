@@ -1,9 +1,9 @@
 <?php
 
 class Ollama {
+    private $debug = false; // DEBUG
     private $models;
     private $apiUrl = 'http://localhost:11434/api/generate';
-    private $debug = false;
 
     // Constructor
     public function __construct($debug = false) {
@@ -14,7 +14,17 @@ class Ollama {
     // Load the list of available models
     private function loadModels() {
         $command = $this->getOllamaListCommand();
+        if ($this->debug)
+        {
+            echo "command=".$command;
+            echo "loadModels--command--".$output;
+        }
         $output = $this->executeCommand($command);
+        if ($this->debug)
+        {
+            echo "command=".$command;
+            echo "loadModels--output--".$output;
+        }
         if ($output === false) {
             throw new Exception("Failed to execute Ollama list command. Please ensure Ollama is installed and accessible.");
         }
@@ -25,9 +35,17 @@ class Ollama {
     private function getOllamaListCommand() {
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             // Windows command
+            if ($this->debug)
+            {
+                echo "<h1>WIN</h1>";
+            }
             return 'ollama list';
         } else {
             // Linux/Unix command
+            if ($this->debug)
+            {
+                echo "<h1>LINUX</h1>";
+            }
             return 'HOME=${HOME:-/root} ollama list 2>&1';
         }
     }
@@ -49,7 +67,13 @@ class Ollama {
     private function parseOllamaOutput($output) {
         $models = [];
         $lines = explode("\n", trim($output));
-        
+        if ($this->debug)
+        {
+            echo "<pre>";
+            print_r($lines);
+            echo "</pre>";
+        }
+       
         // Skip the header line
         array_shift($lines);
         
@@ -57,7 +81,15 @@ class Ollama {
             $line = trim($line);
             if (empty($line)) continue;
             
-            // Parse the line using tab as delimiter
+            // FIXME: Parse the line using tab as delimiter. But ins linux there is no tab
+            $line=str_replace("        ","\t",$line);
+            $line=str_replace("       ","\t",$line);
+            $line=str_replace("      ","\t",$line);
+            $line=str_replace("     ","\t",$line);
+            $line=str_replace("    ","\t",$line);
+            $line=str_replace("   ","\t",$line);
+            $line=str_replace("  ","\t",$line);
+            $line=str_replace(" ","\t",$line);
             $parts = explode("\t", $line);
             if (count($parts) >= 4) {
                 $modelName = trim($parts[0]);
