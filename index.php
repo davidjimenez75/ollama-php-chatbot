@@ -46,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $response = $ollama->generateResponse($selected_model, $message);
             
             // Append the conversation to the markdown file without HTML color tags
-            $conversation = "### $message\n\n**$selected_model:** $response\n\n";
+            $conversation = "\n----\n\n### $message\n\n".strtoupper($selected_model).":\n\n$response\n\n\n";
             file_put_contents($conversation_file, $conversation, FILE_APPEND);
             
             echo json_encode(['success' => true, 'response' => $response]);
@@ -199,9 +199,9 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
             const messageDiv = document.createElement('div');
             if (isUser) {
                 message = message.replace(/\r\n|\n/g, '<br>');
-                messageDiv.innerHTML = `<span class="user-message">${message}</span>`;
+                messageDiv.innerHTML = `<br><hr><br><span class="user-message">${message}</span>`;
             } else {
-                messageDiv.innerHTML = `<strong>${sender}:</strong> ${marked.parse(message)}`;
+                messageDiv.innerHTML = `<strong>${sender.toUpperCase()}:</strong> ${marked.parse(message)}`;
             }
             if (isError) {
                 messageDiv.classList.add('error');
