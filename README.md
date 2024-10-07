@@ -11,13 +11,7 @@ Whether you're looking to integrate a chatbot into your website or simply experi
 - **Multiple Chat Models**: Easily switch between different chat models to suit your needs.
 - **Simple Integration**: Integrate the chatbot into your PHP projects with minimal effort.
 - **User-Friendly**: Designed to be easy to use and configure.
-- **Conversation Logging**: All conversations are stored in markdown format by day, with files named `YYYY-MM-DD.md`.
+- **Conversation Logging**: All conversations are stored in markdown format by day, with files named `YYYY-MM-DD.txt`.
 
 Get started with Ollama PHP Chatbot and enhance your chat experience today!
-
-
-
-
-
-
 
