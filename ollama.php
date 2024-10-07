@@ -1,5 +1,17 @@
 <?php
-
+/**
+ * Ollama PHP Chatbot
+ *
+ * This file contains the implementation of the Ollama PHP Chatbot.
+ * The chatbot is designed to handle user interactions and provide
+ * appropriate responses based on the input received.
+ * 
+ * Conversations are saved daily in files named with the format (yyyy-mm-dd.txt)
+ *
+ * @package OllamaPHPChatbot
+ * @version 1.0
+ * @license MIT License
+ */
 class Ollama {
     private $debug = false; // DEBUG
     private $models;

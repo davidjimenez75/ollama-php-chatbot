@@ -1,7 +1,20 @@
 <?php
-// Habilitar la visualización de errores para depuración
+/**
+ * Ollama PHP Chatbot
+ *
+ * This file contains the implementation of the Ollama PHP Chatbot.
+ * The chatbot is designed to handle user interactions and provide
+ * appropriate responses based on the input received.
+ * 
+ * Conversations are saved daily in files named with the format (yyyy-mm-dd.txt)
+ *
+ * @package OllamaPHPChatbot
+ * @version 1.0
+ * @license MIT License
+ */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+$my_default_model = 'llama3.2:latest'; // Default model in the select box
 
 // Load the OLLAMA library
 require_once 'ollama.php';
@@ -20,7 +33,7 @@ if (!file_exists($markdown_dir)) {
 
 // Get the current date for the conversation file
 $current_date = date('Y-m-d');
-$conversation_file = "$markdown_dir/$current_date.md";
+$conversation_file = "$markdown_dir/$current_date.txt";
 
 // Handle incoming messages
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -45,14 +58,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+
 // List all the models
 $model_list = $ollama->getModelList();
+
 // Move Llama3.1 to the beginning of the list
-$llama31_key = array_search('llama3.1:latest', array_column($model_list, 'name'));
-if ($llama31_key !== false) {
-    $llama31 = $model_list[$llama31_key];
-    unset($model_list[$llama31_key]);
-    array_unshift($model_list, $llama31);
+$default_model_key = array_search($my_default_model, array_column($model_list, 'name'));
+if ($default_model_key !== false) {
+    $default_model = $model_list[$default_model_key];
+    unset($model_list[$default_model_key]);
+    array_unshift($model_list, $default_model);
 }
 
 // Get debug information if in debug mode
@@ -135,10 +150,10 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
         #theme-toggle {
             position: fixed;
             top: 20px;
-            right: -10px;
+            right: 0px;
             background: none;
             border: none;
-            font-size: 24px;
+            font-size: 16px;
             cursor: pointer;
         }
         #debug-info {
