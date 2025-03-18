@@ -14,7 +14,7 @@
  */
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-$my_default_model = 'llama3.2:latest'; // Default model in the select box
+$my_default_model = 'gemma3:latest'; // Default model in the select box
 
 // Load the OLLAMA library
 require_once 'ollama.php';
@@ -35,28 +35,69 @@ if (!file_exists($markdown_dir)) {
 $current_date = date('Y-m-d');
 $conversation_file = "$markdown_dir/$current_date.txt";
 
+// Ensure all errors are caught and returned as JSON
+function handleJsonError($errno, $errstr, $errfile, $errline) {
+    if (!(error_reporting() & $errno)) {
+        // This error code is not included in error_reporting
+        return false;
+    }
+    
+    $error_message = "PHP Error [$errno]: $errstr in $errfile on line $errline";
+    error_log($error_message);
+    
+    // Only output JSON if this is a POST request (API call)
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'error' => $error_message]);
+        exit(1);
+    }
+    
+    // Return true to indicate the error has been handled
+    return true;
+}
+
+// Set custom error handler
+set_error_handler('handleJsonError');
+
 // Handle incoming messages
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $data = json_decode(file_get_contents('php://input'), true);
-    if (isset($data['model']) && isset($data['message'])) {
+    // Ensure we always return JSON, even if there's a PHP error
+    header('Content-Type: application/json');
+    
+    try {
+        $raw_input = file_get_contents('php://input');
+        if (empty($raw_input)) {
+            throw new Exception('No input data received');
+        }
+        
+        $data = json_decode($raw_input, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Invalid JSON input: ' . json_last_error_msg());
+        }
+        
+        if (!isset($data['model']) || !isset($data['message'])) {
+            throw new Exception('Missing required fields: model and message');
+        }
+        
         $selected_model = htmlspecialchars($data['model']);
         $message = htmlspecialchars($data['message']);
         
-        try {
-            $response = $ollama->generateResponse($selected_model, $message);
-            
-            // Append the conversation to the markdown file without HTML color tags
-            $conversation = "\n----\n\n### $message\n\n".strtoupper($selected_model).":\n\n$response\n\n\n";
-            file_put_contents($conversation_file, $conversation, FILE_APPEND);
-            
-            echo json_encode(['success' => true, 'response' => $response]);
-        } catch (Exception $e) {
-            error_log('Error in index.php: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-        }
-        exit;
+        $response = $ollama->generateResponse($selected_model, $message);
+        
+        // Append the conversation to the markdown file without HTML color tags
+        $conversation = "\n----\n\n### $message\n\n".strtoupper($selected_model).":\n\n$response\n\n\n";
+        file_put_contents($conversation_file, $conversation, FILE_APPEND);
+        
+        echo json_encode(['success' => true, 'response' => $response]);
+    } catch (Exception $e) {
+        error_log('Error in index.php: ' . $e->getMessage());
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
+    exit;
 }
+
+// Restore default error handler for the rest of the page
+restore_error_handler();
 
 
 // List all the models
@@ -72,9 +113,7 @@ if ($default_model_key !== false) {
 
 // Get debug information if in debug mode
 $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
-?>
-
-<!DOCTYPE html>
+?><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -225,7 +264,25 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
                     },
                     body: JSON.stringify({ model: currentModel, message: message }),
                 })
-                .then(response => response.json())
+                .then(response => {
+                    // Check if the response is valid before trying to parse JSON
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    
+                    // First try to get the text content
+                    return response.text().then(text => {
+                        try {
+                            // Try to parse as JSON
+                            return JSON.parse(text);
+                        } catch (e) {
+                            // If parsing fails, throw an error with the raw text
+                            console.error('Failed to parse JSON:', text);
+                            throw new Error('Server returned invalid JSON: ' + 
+                                (text.length > 100 ? text.substring(0, 100) + '...' : text));
+                        }
+                    });
+                })
                 .then(data => {
                     if (data.success) {
                         appendMessage(currentModel, data.response);
@@ -236,6 +293,9 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
                 .catch(error => {
                     console.error('Error:', error);
                     appendMessage('Error', 'Failed to send message: ' + error.message, true);
+                    
+                    // Check if Ollama is running
+                    appendMessage('System', 'Make sure Ollama is running on your system. You can start it by running "ollama serve" in a terminal.', true);
                 });
             }
         }

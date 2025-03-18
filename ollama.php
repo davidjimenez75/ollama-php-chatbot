@@ -13,7 +13,7 @@
  * @license MIT License
  */
 class Ollama {
-    private $debug = false; // DEBUG
+    private $debug = true; // DEBUG
     private $models;
     private $apiUrl = 'http://localhost:11434/api/generate';
 
@@ -140,28 +140,37 @@ class Ollama {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        // Add timeout to prevent hanging if Ollama server is not responding
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5); 
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 
         $response = curl_exec($ch);
-
-        if (curl_errno($ch)) {
-            error_log('Failed to generate response: ' . curl_error($ch));
-            throw new Exception('Failed to generate response: ' . curl_error($ch));
-        }
-
+        $curlError = curl_errno($ch);
+        $curlErrorMessage = curl_error($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        if ($curlError) {
+            error_log('Failed to generate response: ' . $curlErrorMessage);
+            throw new Exception('Failed to connect to Ollama API: ' . $curlErrorMessage);
+        }
+
         if ($httpCode !== 200) {
             error_log("HTTP Error: $httpCode. Response: $response");
-            throw new Exception("HTTP Error: $httpCode");
+            throw new Exception("HTTP Error $httpCode: Unable to communicate with Ollama API");
         }
 
         $responseData = json_decode($response, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('JSON decode error: ' . json_last_error_msg() . '. Raw response: ' . $response);
+            throw new Exception('Invalid JSON response from Ollama API');
+        }
+
         if (isset($responseData['response'])) {
             return $responseData['response'];
         } else {
-            error_log('Invalid response from Ollama API: ' . $response);
-            throw new Exception('Invalid response from Ollama API: ' . $response);
+            error_log('Missing response field in Ollama API response: ' . $response);
+            throw new Exception('Unexpected response format from Ollama API');
         }
     }
 
@@ -203,5 +212,3 @@ if (php_sapi_name() === 'cli') {
         echo "Error: " . $e->getMessage() . "\n";
     }
 }
-
-?>
