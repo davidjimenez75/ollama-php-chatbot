@@ -138,6 +138,11 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
             --code-bg: #222;
             --user-message-color: #ff6b6b;
         }
+        
+        /* Make markdown links red in dark mode for better visibility */
+        [data-theme="dark"] #chat-window a {
+            color: #ff3333;
+        }
 
         body { 
             background-color: var(--bg-color); 
