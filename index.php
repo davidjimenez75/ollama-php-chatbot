@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $response = $ollama->generateResponse($selected_model, $message);
         
         // Append the conversation to the markdown file without HTML color tags
-        $conversation = "\n----\n\n### $message\n\n".strtoupper($selected_model).":\n\n$response\n\n\n";
+        $conversation = "\n--------------------------------------------------------------------------------\n### $message\n\n".strtoupper($selected_model).":\n\n$response\n\n\n";
         file_put_contents($conversation_file, $conversation, FILE_APPEND);
         
         echo json_encode(['success' => true, 'response' => $response]);
