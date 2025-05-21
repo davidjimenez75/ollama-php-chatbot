@@ -315,7 +315,7 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
 
         modelSelect.addEventListener('change', function() {
             currentModel = modelSelect.value;
-            appendMessage('System', `Changed model to ${currentModel}`);
+            appendMessage('<hr>System', `Changed model to ${currentModel}`);
         });
 
         // Theme toggle functionality
