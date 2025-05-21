@@ -220,7 +220,7 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
         </select>
         
         <div id="chat-window"></div>
-        <textarea id="chat-input" placeholder="Type a message"  rows="13"></textarea>
+        <textarea id="chat-input" placeholder="Type a message (Ctrl + Enter to send)"  rows="13"></textarea>
         <button id="send-chat">Send</button>
 
         <?php if ($debug_mode && $debug_info): ?>
@@ -306,10 +306,10 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
         }
 
         sendButton.addEventListener('click', sendMessage);
-        chatInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
+        chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.ctrlKey) {
+            e.preventDefault();
+            sendMessage();
             }
         });
 
