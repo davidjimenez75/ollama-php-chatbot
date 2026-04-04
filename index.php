@@ -256,6 +256,20 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
         }
 
         /* About button inside hamburger */
+        #home-link, #docs-link {
+            display: block;
+            width: 100%;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: var(--bg-select, #eee);
+            color: var(--text-select, #333);
+            border: 1px solid var(--border, #ccc);
+            border-radius: 4px;
+            font-size: 13px;
+            text-decoration: none;
+            text-align: left;
+        }
+        #home-link:hover, #docs-link:hover { background: var(--bg-hover, #ddd); }
         #about-btn {
             display: block;
             width: 100%;
@@ -320,6 +334,10 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
     <div id="hamburger-menu">
         <button id="hamburger-btn" aria-label="Open menu">&#9776;</button>
         <div id="hamburger-panel">
+            <a href="index.php" id="home-link">🏠 Homepage</a>
+            <?php if (defined('DOCS_SCAN_DIRS') && count(DOCS_SCAN_DIRS) > 0): ?>
+            <a href="docs.php" id="docs-link">📂 Conversations</a>
+            <?php endif; ?>
             <label for="theme-select">Theme</label>
             <select id="theme-select">
                 <option value="theme-dark">Dark</option>
