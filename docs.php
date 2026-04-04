@@ -402,22 +402,23 @@ body {
     border-radius: 5px;
     background: var(--bg-body);
     color: var(--text-secondary);
-    counter-reset: toc-counter;
 }
 #toc a {
-    display: block;
+    display: flex;
+    gap: 0.3em;
     color: var(--accent);
     text-decoration: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    counter-increment: toc-counter;
 }
-#toc a::before {
-    content: counter(toc-counter) ". ";
-    color: var(--text-secondary);
+.toc-num {
+    flex-shrink: 0;
     min-width: 1.8em;
-    display: inline-block;
+    color: var(--text-secondary);
+}
+.toc-text {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
 }
 #toc a:hover { color: var(--accent-hover); text-decoration: underline; }
 
@@ -709,10 +710,19 @@ body {
         const nav = document.createElement('nav');
         nav.id = 'toc';
 
-        headings.forEach(h => {
+        headings.forEach((h, i) => {
             const a = document.createElement('a');
             a.href = '#' + h.id;
-            a.textContent = h.textContent;
+
+            const num = document.createElement('span');
+            num.className = 'toc-num';
+            num.textContent = (i + 1) + '.';
+            const text = document.createElement('span');
+            text.className = 'toc-text';
+            text.textContent = h.textContent;
+            a.appendChild(num);
+            a.appendChild(text);
+
             a.addEventListener('click', e => {
                 e.preventDefault();
                 const top = h.getBoundingClientRect().top
