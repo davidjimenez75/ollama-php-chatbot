@@ -12,9 +12,9 @@
  * @version 1.0
  * @license MIT License
  */
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-$my_default_model = 'gemma3:latest'; // Default model in the select box
+
+// Load config
+require_once 'config.php';
 
 // Load the OLLAMA library
 require_once 'ollama.php';

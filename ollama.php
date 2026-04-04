@@ -15,7 +15,7 @@
 class Ollama {
     private $debug = true; // DEBUG
     private $models;
-    private $apiUrl = 'http://localhost:11434/api/generate';
+    private $apiUrl = API_URL;
 
     // Constructor
     public function __construct($debug = false) {
@@ -25,6 +25,7 @@ class Ollama {
 
     // Load the list of available models
     private function loadModels() {
+        $output="";
         $command = $this->getOllamaListCommand();
         if ($this->debug)
         {
