@@ -119,6 +119,9 @@ if (defined('FORCED_MODEL') && FORCED_MODEL !== '') {
 
 // Get debug information if in debug mode
 $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
+
+// Read version
+$app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,96 +131,203 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
     <link rel="stylesheet" href="default.min.css">
     <script src="highlight.min.js"></script>
     <script src="marked.min.js"></script>
+    <link id="theme-css" rel="stylesheet" href="theme-dark.css">
     <style>
-        :root {
-            --bg-color: #deddda;
-            --text-color: #333;
-            --chat-bg: #e8e8e8;
-            --code-bg: #f4f4f4;
-            --user-message-color: #800000;
+        body {
+            background: var(--bg-body, #deddda);
+            color: var(--text-primary, #333);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 94vh;
+            display: flex;
+            flex-direction: column;
         }
-
-        [data-theme="dark"] {
-            --bg-color: #333;
-            --text-color: #f4f4f4;
-            --chat-bg: #444;
-            --code-bg: #222;
-            --user-message-color: #ff6b6b;
-        }
-        
-        /* Make markdown links red in dark mode for better visibility */
-        [data-theme="dark"] #chat-window a {
-            color: #ff3333;
-        }
-
-        body { 
-            background-color: var(--bg-color); 
-            color: var(--text-color);
-            font-family: Arial, sans-serif; 
-            margin: 0; 
-            padding: 0; 
-            height: 94vh; 
-            display: flex; 
-            flex-direction: column; 
-        }
-        .container { 
-            min-width: 90%; 
-            margin: 0 auto; 
-            padding: 20px; 
-            flex-grow: 1; 
-            display: flex; 
-            flex-direction: column; 
+        .container {
+            min-width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
         }
         @media (max-width: 768px) { .container { max-width: 100%; } }
-        #chat-window { 
-            background-color: var(--chat-bg); 
-            flex-grow: 1; 
-            border: 1px solid #ccc; 
-            overflow-y: scroll; 
-            padding: 10px; 
-            margin-bottom: 10px; 
+        #chat-window {
+            background-color: var(--bg-content, #e8e8e8);
+            flex-grow: 1;
+            border: 1px solid var(--border, #ccc);
+            overflow-y: scroll;
+            padding: 10px;
+            margin-bottom: 10px;
         }
-        #chat-input { 
-            width: 94%; 
-            padding: 10px; 
-            margin-bottom: 10px; 
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            border: 1px solid var(--text-color);
+        #chat-window a { color: var(--link-color, blue); }
+        #chat-input {
+            /*width: 94%;*/
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: var(--bg-input, #deddda);
+            color: var(--text-input, #333);
+            border: 1px solid var(--border-input, #333);
         }
         #send-chat, #change-model { padding: 10px 20px; }
-        #model-select { 
-            padding: 10px; 
-            margin-bottom: 10px; 
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            border: 1px solid var(--text-color);
+        #model-select {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: var(--bg-select, #deddda);
+            color: var(--text-select, #333);
+            border: 1px solid var(--border, #333);
         }
         .error { color: red; }
-        .user-message { color: var(--user-message-color); }
-        pre { background-color: var(--code-bg); padding: 10px; border-radius: 5px; }
+        .user-message { color: var(--url-color, #800000); }
+        pre { background-color: var(--bg-code, #f4f4f4); padding: 10px; border-radius: 5px; }
         code { font-family: 'Courier New', Courier, monospace; }
-        #theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 0px;
-            background: none;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-        }
         #debug-info {
-            background-color: var(--chat-bg);
-            border: 1px solid var(--text-color);
+            background-color: var(--bg-content, #e8e8e8);
+            border: 1px solid var(--border, #ccc);
             padding: 10px;
             margin-top: 20px;
             white-space: pre-wrap;
             font-family: monospace;
         }
+
+        /* Hamburger menu */
+        #hamburger-menu {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            z-index: 1000;
+        }
+        #hamburger-btn {
+            background: var(--burger-bg, #444);
+            color: var(--burger-bar, white);
+            border: none;
+            font-size: 20px;
+            width: 42px;
+            height: 42px;
+            border-radius: 6px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        #hamburger-btn:hover {
+            background: var(--burger-hover-bg, #222);
+        }
+        #hamburger-panel {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 50px;
+            background: var(--bg-dropdown, #fff);
+            border: 1px solid var(--border, #ccc);
+            border-radius: 8px;
+            padding: 16px;
+            min-width: 200px;
+            box-shadow: 0 4px 16px var(--shadow-dropdown, rgba(0,0,0,0.2));
+        }
+        #hamburger-panel.open { display: block; }
+        #hamburger-panel label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: var(--text-secondary, #555);
+        }
+        #theme-select {
+            width: 100%;
+            padding: 8px;
+            background-color: var(--bg-select, #fff);
+            color: var(--text-select, #333);
+            border: 1px solid var(--border, #ccc);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        @media (max-width: 480px) {
+            #hamburger-panel { min-width: 160px; }
+        }
+
+        /* About button inside hamburger */
+        #about-btn {
+            display: block;
+            width: 100%;
+            margin-top: 12px;
+            padding: 8px;
+            background: var(--bg-select, #eee);
+            color: var(--text-select, #333);
+            border: 1px solid var(--border, #ccc);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            text-align: left;
+        }
+        #about-btn:hover { background: var(--bg-hover, #ddd); }
+
+        /* About modal */
+        #about-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        #about-overlay.open { display: flex; }
+        #about-modal {
+            background: var(--bg-dropdown, #fff);
+            color: var(--text-primary, #333);
+            border: 1px solid var(--border, #ccc);
+            border-radius: 10px;
+            padding: 28px 32px;
+            min-width: 260px;
+            max-width: 90vw;
+            box-shadow: 0 8px 32px var(--shadow-modal, rgba(0,0,0,0.3));
+            text-align: center;
+        }
+        #about-modal h2 {
+            margin: 0 0 8px;
+            color: var(--text-primary, #333);
+            font-size: 1.2em;
+        }
+        #about-modal .about-version {
+            font-size: 0.95em;
+            color: var(--text-secondary, #888);
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        #about-close {
+            padding: 8px 24px;
+            background: var(--accent, #444);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #about-close:hover { background: var(--accent-hover, #222); }
     </style>
 </head>
 <body>
-    <button id="theme-toggle">💡</button>
+    <div id="hamburger-menu">
+        <button id="hamburger-btn" aria-label="Open menu">&#9776;</button>
+        <div id="hamburger-panel">
+            <label for="theme-select">Theme</label>
+            <select id="theme-select">
+                <option value="theme-dark">Dark</option>
+                <option value="theme-dawn">Dawn</option>
+                <option value="theme-dusk">Dusk</option>
+                <option value="theme-fog">Fog</option>
+                <option value="theme-light">Light</option>
+                <option value="theme-winter">Winter</option>
+            </select>
+            <button id="about-btn">&#9432; About</button>
+        </div>
+    </div>
+
+    <div id="about-overlay">
+        <div id="about-modal">
+            <h2>Ollama PHP Chatbot</h2>
+            <div class="about-version">v<?= htmlspecialchars($app_version) ?></div>
+            <button id="about-close">Close</button>
+        </div>
+    </div>
     <div class="container">
         <?php if (defined('FORCED_MODEL') && FORCED_MODEL !== ''): ?>
             <input type="hidden" id="model-select" value="<?= htmlspecialchars(FORCED_MODEL) ?>">
@@ -328,34 +438,55 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
             appendMessage('<hr>System', `Changed model to ${currentModel}`);
         });
 
-        // Theme toggle functionality
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            themeToggle.textContent = theme === 'light' ? '💡' : '🌙';
-        }
+        // Hamburger menu & theme switcher
+        const hamburgerBtn = document.getElementById('hamburger-btn');
+        const hamburgerPanel = document.getElementById('hamburger-panel');
+        const themeSelect = document.getElementById('theme-select');
+        const themeCss = document.getElementById('theme-css');
 
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            setTheme(newTheme);
+        hamburgerBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hamburgerPanel.classList.toggle('open');
         });
 
-        // Check for saved theme preference or use system preference
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            setTheme(savedTheme);
-        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            setTheme('dark');
-        } else {
-            setTheme('light');
+        document.addEventListener('click', () => {
+            hamburgerPanel.classList.remove('open');
+        });
+
+        hamburgerPanel.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        function applyTheme(theme) {
+            themeCss.href = theme + '.css';
+            themeSelect.value = theme;
+            localStorage.setItem('theme', theme);
         }
 
-        // Listen for system theme changes
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            if (!localStorage.getItem('theme')) {
-                setTheme(e.matches ? 'dark' : 'light');
-            }
+        themeSelect.addEventListener('change', () => {
+            applyTheme(themeSelect.value);
+        });
+
+        // Load saved theme or default to dark
+        applyTheme(localStorage.getItem('theme') || 'theme-dark');
+
+        // About modal
+        const aboutBtn = document.getElementById('about-btn');
+        const aboutOverlay = document.getElementById('about-overlay');
+        const aboutClose = document.getElementById('about-close');
+
+        aboutBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hamburgerPanel.classList.remove('open');
+            aboutOverlay.classList.add('open');
+        });
+
+        aboutClose.addEventListener('click', () => {
+            aboutOverlay.classList.remove('open');
+        });
+
+        aboutOverlay.addEventListener('click', (e) => {
+            if (e.target === aboutOverlay) aboutOverlay.classList.remove('open');
         });
     </script>
 </body>

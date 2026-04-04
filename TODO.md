@@ -2,7 +2,7 @@
 
 ---
 
-### - [ ] 2. [[docs/themes.md]] Create multiple theme-*.css on root folders
+### - [x] 2. [[docs/themes.md]] Create multiple theme-*.css on root folders
 
 ---
 
