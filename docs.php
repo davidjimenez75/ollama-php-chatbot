@@ -457,7 +457,15 @@ body {
 #sort-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
 </style>
 <link rel="stylesheet" id="theme-css" href="<?php echo htmlspecialchars($defaultTheme); ?>">
-<script>const TREE_DATA = <?= json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
+<?php
+$today_ext  = defined('CONVERSATION_EXT') ? ltrim(CONVERSATION_EXT, '.') : 'md';
+$today_rel  = 'conversations/' . date('Y-m-d') . '.' . $today_ext;
+$today_file = file_exists(ROOT . '/' . $today_rel) ? $today_rel : null;
+?>
+<script>
+const TREE_DATA  = <?= json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+const TODAY_FILE = <?= json_encode($today_file) ?>;
+</script>
 </head>
 <body>
 
@@ -898,6 +906,9 @@ body {
     if (initialFile) {
         expandToFile(initialFile);
         loadFile(initialFile);
+    } else if (TODAY_FILE) {
+        expandToFile(TODAY_FILE);
+        loadFile(TODAY_FILE);
     } else {
         const readmeEl = sidebarTree.querySelector('.doc-file[data-rel="README.md"]');
         if (readmeEl) loadFile('README.md');
