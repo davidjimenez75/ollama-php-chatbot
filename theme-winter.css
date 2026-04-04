@@ -4,7 +4,7 @@
   --accent-light:          #8898b0;
   --accent-shadow:         rgba(74, 111, 152, 0.1);
 
-  --bg-body:               linear-gradient(135deg, #7a8898 0%, #6a7888 50%, #5c6878 100%);
+  --bg-body:               #6a7888;
   --bg-content:            #a0a8b0;
   --bg-select:             #9098a8;
   --bg-input:              #9098a8;
@@ -22,7 +22,7 @@
   --shadow-modal:          rgba(0, 0, 0, 0.28);
 
   --text-primary:          #111111;
-  --text-secondary:        #585858;
+  --text-secondary:        #b0bcc8;
   --text-muted:            #585858;
   --text-hint:             #585858;
   --text-select:           #111111;
@@ -57,3 +57,7 @@
   --about-name-color:      #111111;
   --about-version-color:   #585858;
 }
+
+/* TOC links: white on blue-grey background for readability */
+#toc a       { color: #ffffff; }
+#toc a:hover { color: #f0f4f8; }

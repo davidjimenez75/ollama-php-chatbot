@@ -127,7 +127,6 @@ $inlineRoot = $rootMatch[1] ?? '';
 <style>
 :root {<?php echo $inlineRoot; ?>}
 </style>
-<link rel="stylesheet" id="theme-css" href="<?php echo htmlspecialchars($defaultTheme); ?>">
 <style>
 /* Layout */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -261,7 +260,20 @@ body {
     gap: 12px;
 }
 
-#content-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
+#content-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; flex: 1; }
+
+#sidebar-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+#sidebar-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
 
 .theme-row {
     display: flex;
@@ -436,6 +448,7 @@ body {
 }
 #sort-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
 </style>
+<link rel="stylesheet" id="theme-css" href="<?php echo htmlspecialchars($defaultTheme); ?>">
 <script>const TREE_DATA = <?= json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 </head>
 <body>
@@ -457,6 +470,7 @@ body {
   <!-- Main content -->
   <div id="content-wrap">
     <div id="content-header">
+      <button id="sidebar-toggle" title="Toggle sidebar">&#9664;</button>
       <span id="content-path">—</span>
       <div class="theme-row">
         <label for="theme-select">Theme:</label>
@@ -892,6 +906,30 @@ body {
             document.body.style.userSelect = '';
             localStorage.setItem(LS_SIDEBAR, parseInt(sidebar.style.width, 10));
         });
+    }());
+
+    // --- Sidebar toggle ---
+    (function () {
+        const LS_HIDDEN  = 'cuadernos-sidebar-hidden';
+        const sidebar    = document.getElementById('sidebar');
+        const resizer    = document.getElementById('sidebar-resizer');
+        const btn        = document.getElementById('sidebar-toggle');
+
+        function setSidebar(hidden) {
+            sidebar.style.display  = hidden ? 'none' : '';
+            resizer.style.display  = hidden ? 'none' : '';
+            btn.innerHTML          = hidden ? '&#9654;' : '&#9664;';
+            btn.title              = hidden ? 'Show sidebar' : 'Hide sidebar';
+            try { localStorage.setItem(LS_HIDDEN, hidden ? '1' : '0'); } catch(e) {}
+        }
+
+        btn.addEventListener('click', () => {
+            const hidden = sidebar.style.display === 'none';
+            setSidebar(!hidden);
+        });
+
+        // Restore saved state
+        if (localStorage.getItem(LS_HIDDEN) === '1') setSidebar(true);
     }());
 
 }());

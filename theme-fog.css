@@ -4,7 +4,7 @@
   --accent-light:          #b0b0b0;
   --accent-shadow:         rgba(100, 100, 100, 0.1);
 
-  --bg-body:               linear-gradient(135deg, #d4d4d4 0%, #b8b8b8 50%, #a8a8a8 100%);
+  --bg-body:               #d0d0d0;
   --bg-content:            #d0d0d0;
   --bg-select:             #c4c4c4;
   --bg-input:              #c0c0c0;
@@ -57,3 +57,8 @@
   --about-name-color:      #222222;
   --about-version-color:   #555555;
 }
+
+/* TOC: solid background to avoid gradient contrast issues + stronger link color */
+#toc         { background: #d0d0d0; }
+#toc a       { color: #1155bb; }
+#toc a:hover { color: #003399; }
