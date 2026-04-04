@@ -25,15 +25,23 @@ $debug_mode = isset($_GET['debug']) && $_GET['debug'] === 'true';
 // Initialize the OLLAMA engine with debug mode
 $ollama = new Ollama($debug_mode);
 
-// Define the path to the markdown files
+// Define the path to the conversation files
 $markdown_dir = 'conversations';
+$init_warning = null;
+
 if (!file_exists($markdown_dir)) {
-    mkdir($markdown_dir, 0777, true);
+    if (!@mkdir($markdown_dir, 0755, true)) {
+        $init_warning = "WARNING: Cannot create folder '$markdown_dir/'. Fix with:\n  mkdir $markdown_dir && chown www-data:www-data ./$markdown_dir";
+    }
 }
 
-// Get the current date for the conversation file
+if (!$init_warning && !is_writable($markdown_dir)) {
+    $init_warning = "WARNING: Folder '$markdown_dir/' is not writable. Fix with:\n  chown www-data:www-data ./$markdown_dir -R";
+}
+
+$ext = defined('CONVERSATION_EXT') ? ltrim(CONVERSATION_EXT, '.') : 'md';
 $current_date = date('Y-m-d');
-$conversation_file = "$markdown_dir/$current_date.txt";
+$conversation_file = "$markdown_dir/$current_date.$ext";
 
 // Ensure all errors are caught and returned as JSON
 function handleJsonError($errno, $errstr, $errfile, $errline) {
@@ -86,11 +94,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         $response = $ollama->generateResponse($selected_model, $message);
         
-        // Append the conversation to the markdown file without HTML color tags
+        // Append the conversation to the log file
         $conversation = "\n--------------------------------------------------------------------------------\n### $message\n\n".strtoupper($selected_model).":\n\n$response\n\n\n";
-        file_put_contents($conversation_file, $conversation, FILE_APPEND);
-        
-        echo json_encode(['success' => true, 'response' => $response]);
+        $write_result = @file_put_contents($conversation_file, $conversation, FILE_APPEND);
+        $write_warning = ($write_result === false)
+            ? "WARNING: Could not write to '$conversation_file'. Fix with:\n  chown www-data:www-data ./conversations -R"
+            : null;
+
+        echo json_encode(['success' => true, 'response' => $response, 'warning' => $write_warning]);
     } catch (Exception $e) {
         error_log('Error in index.php: ' . $e->getMessage());
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
@@ -340,7 +351,7 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
         <?php endif; ?>
         
         <div id="chat-window"></div>
-        <textarea id="chat-input" placeholder="Type a message (Ctrl + Enter to send)"  rows="13"></textarea>
+        <textarea id="chat-input" placeholder="Type a message (Ctrl + Enter to send)" rows="13"><?= $init_warning ? htmlspecialchars($init_warning) : '' ?></textarea>
         <button id="send-chat">Send</button>
 
         <?php if ($debug_mode && $debug_info): ?>
@@ -411,6 +422,9 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
                 .then(data => {
                     if (data.success) {
                         appendMessage(currentModel, data.response);
+                        if (data.warning) {
+                            chatInput.value = data.warning;
+                        }
                     } else {
                         appendMessage('Error', data.error, true);
                     }

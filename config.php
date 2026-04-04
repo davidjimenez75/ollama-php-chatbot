@@ -11,6 +11,9 @@ define('OLLAMA_HOSTS', [
     // 'http://192.168.1.98:11434',
 ]);
 
+// Conversation log file extension: 'md' or 'txt'
+define('CONVERSATION_EXT', 'md');
+
 // Force the chatbox to one model
 # define('FORCED_MODEL', 'gemma4:latest');// Set to a model name to lock the chatbot to one model, e.g. 'gemma4:latest'.
 define('FORCED_MODEL', '');// Empty = allow all.
