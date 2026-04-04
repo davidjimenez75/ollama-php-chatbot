@@ -7,8 +7,11 @@
  *   GET ?file=path/to/file  → return raw file content as JSON
  */
 
-const EXCLUDE_DIRS = ['.git', 'node_modules', 'BookReader', 'BookReaderDemo', '.claude', 'lib'];
-const ROOT = __DIR__;
+require_once __DIR__ . '/config.php';
+
+const EXCLUDE_DIRS   = ['.git', 'node_modules', 'BookReader', 'BookReaderDemo', '.claude', 'lib'];
+const SUPPORTED_EXTS = ['md', 'mermaid', 'txt', 'csv'];
+const ROOT           = __DIR__;
 
 // Scan theme-*.css files dynamically
 $themeFiles = glob(__DIR__ . '/theme-*.css') ?: [];
@@ -26,7 +29,7 @@ if (isset($_GET['file']) && ($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHt
         exit;
     }
     $ext = strtolower(pathinfo($abs, PATHINFO_EXTENSION));
-    if (!in_array($ext, ['md', 'mermaid'], true)) {
+    if (!in_array($ext, SUPPORTED_EXTS, true)) {
         http_response_code(400);
         echo json_encode(['error' => 'Unsupported file type']);
         exit;
@@ -59,7 +62,7 @@ function scanDocs(string $dir, string $root): array {
             }
         } elseif (is_file($fullPath)) {
             $ext = strtolower(pathinfo($item, PATHINFO_EXTENSION));
-            if (in_array($ext, ['md', 'mermaid'], true)) {
+            if (in_array($ext, SUPPORTED_EXTS, true)) {
                 $files[] = ['name' => $item, 'rel' => $rel, 'ext' => $ext];
             }
         }
@@ -87,7 +90,7 @@ foreach (@scandir(ROOT) ?: [] as $item) {
     if ($item === '.' || $item === '..') continue;
     $fullPath = ROOT . '/' . $item;
     $ext = strtolower(pathinfo($item, PATHINFO_EXTENSION));
-    if (is_file($fullPath) && in_array($ext, ['md', 'mermaid'], true)) {
+    if (is_file($fullPath) && in_array($ext, SUPPORTED_EXTS, true)) {
         $rootFiles[] = ['type' => 'file', 'name' => $item, 'rel' => $item, 'ext' => $ext];
     }
 }
@@ -95,12 +98,15 @@ usort($rootFiles, fn($a, $b) => strcasecmp($a['name'], $b['name']));
 
 $tree = $rootFiles;
 
-// Add docs/ subtree if the directory exists
-$docsDir = ROOT . '/docs';
-if (is_dir($docsDir)) {
-    $docsChildren = scanDocs($docsDir, ROOT);
-    if ($docsChildren) {
-        $tree[] = ['type' => 'dir', 'name' => 'docs', 'rel' => 'docs', 'children' => $docsChildren];
+// Add configured scan directories
+$scanDirs = defined('DOCS_SCAN_DIRS') ? DOCS_SCAN_DIRS : [];
+foreach ($scanDirs as $dirName) {
+    $dirPath = ROOT . '/' . $dirName;
+    if (is_dir($dirPath)) {
+        $children = scanDocs($dirPath, ROOT);
+        if ($children) {
+            $tree[] = ['type' => 'dir', 'name' => $dirName, 'rel' => $dirName, 'children' => $children];
+        }
     }
 }
 
@@ -108,7 +114,12 @@ function renderTree(array $nodes, int $depth = 0): string {
     $html = '';
     foreach ($nodes as $node) {
         if ($node['type'] === 'file') {
-            $icon = $node['ext'] === 'mermaid' ? '🔗' : '📄';
+            $icon = match($node['ext']) {
+                'mermaid' => '🔗',
+                'csv'     => '📊',
+                'txt'     => '📝',
+                default   => '📄',
+            };
             $html .= '<div class="doc-file" data-rel="' . htmlspecialchars($node['rel']) . '" data-ext="' . htmlspecialchars($node['ext']) . '" style="padding-left:' . ($depth * 14) . 'px">'
                    . '<span class="file-icon">' . $icon . '</span>'
                    . '<span class="file-name">' . htmlspecialchars($node['name']) . '</span>'
@@ -578,11 +589,41 @@ body {
         }));
     }
 
+    function csvToTable(text) {
+        const rows = text.trim().split('\n').map(r => {
+            // Handle quoted fields containing commas
+            const fields = [];
+            let cur = '', inQ = false;
+            for (let i = 0; i < r.length; i++) {
+                const c = r[i];
+                if (c === '"') { inQ = !inQ; }
+                else if (c === ',' && !inQ) { fields.push(cur.trim()); cur = ''; }
+                else { cur += c; }
+            }
+            fields.push(cur.trim());
+            return fields;
+        });
+        if (!rows.length) return '';
+        let html = '<table><thead><tr>';
+        rows[0].forEach(h => { html += '<th>' + escHtml(h) + '</th>'; });
+        html += '</tr></thead><tbody>';
+        rows.slice(1).forEach(row => {
+            html += '<tr>';
+            row.forEach(cell => { html += '<td>' + escHtml(cell) + '</td>'; });
+            html += '</tr>';
+        });
+        return html + '</tbody></table>';
+    }
+
     async function renderContent(text, ext, container) {
         const fileDir = getFileDir(currentRel);
-        container.classList.toggle('wide', ext === 'mermaid');
+        container.classList.toggle('wide', ext === 'mermaid' || ext === 'csv');
         if (ext === 'mermaid') {
             container.innerHTML = '<pre class="mermaid">' + escHtml(text) + '</pre>';
+        } else if (ext === 'txt') {
+            container.innerHTML = '<pre style="white-space:pre-wrap;word-break:break-word">' + escHtml(text) + '</pre>';
+        } else if (ext === 'csv') {
+            container.innerHTML = csvToTable(text);
         } else {
             container.innerHTML = marked.parse(text, { renderer: buildRenderer(fileDir) });
 

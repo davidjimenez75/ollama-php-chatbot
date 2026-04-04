@@ -95,7 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $response = $ollama->generateResponse($selected_model, $message);
         
         // Append the conversation to the log file
-        $conversation = "\n--------------------------------------------------------------------------------\n### $message\n\n".strtoupper($selected_model).":\n\n$response\n\n\n";
+        $model_label = preg_replace('/:latest$/i', '', $selected_model);
+        $conversation = "\n--------------------------------------------------------------------------------\n# $message\n\n".strtoupper($model_label).":\n\n$response\n\n\n";
         $write_result = @file_put_contents($conversation_file, $conversation, FILE_APPEND);
         $write_warning = ($write_result === false)
             ? "WARNING: Could not write to '$conversation_file'. Fix with:\n  chown www-data:www-data ./conversations -R"

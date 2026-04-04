@@ -14,6 +14,14 @@ define('OLLAMA_HOSTS', [
 // Conversation log file extension: 'md' or 'txt'
 define('CONVERSATION_EXT', 'md');
 
+// Folders scanned by docs.php (relative to project root). Add thematic folders here.
+define('DOCS_SCAN_DIRS', [
+    'conversations',
+    // 'rust',
+    // 'php',
+    // 'linux',
+]);
+
 // Force the chatbox to one model
 # define('FORCED_MODEL', 'gemma4:latest');// Set to a model name to lock the chatbot to one model, e.g. 'gemma4:latest'.
 define('FORCED_MODEL', '');// Empty = allow all.
