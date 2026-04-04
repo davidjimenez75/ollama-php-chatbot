@@ -1,0 +1,62 @@
+:root {
+  --accent:                #b07dff;
+  --accent-hover:          #9060e0;
+  --accent-light:          #2a1f40;
+  --accent-shadow:         rgba(176, 125, 255, 0.1);
+
+  --bg-body:               linear-gradient(135deg, #1e1828 0%, #261f36 100%);
+  --bg-content:            #261f36;
+  --bg-select:             #32264a;
+  --bg-input:              #32264a;
+  --bg-file-item:          #32264a;
+  --bg-toolbar:            #261f36;
+  --bg-preview:            #1e1828;
+  --bg-dropdown:           #261f36;
+  --bg-hover:              #32264a;
+  --bg-toolbar-hover:      #32264a;
+  --bg-code:               #261f36;
+  --bg-editor:             #1e1828;
+
+  --shadow-content:        rgba(0, 0, 0, 0.5);
+  --shadow-dropdown:       rgba(0, 0, 0, 0.5);
+  --shadow-modal:          rgba(0, 0, 0, 0.6);
+
+  --text-primary:          #d4c8e8;
+  --text-secondary:        #9985bb;
+  --text-muted:            #9985bb;
+  --text-hint:             #9080b8;
+  --text-select:           #d4c8e8;
+  --text-input:            #d4c8e8;
+  --text-file-item:        #d4c8e8;
+  --text-file-item-hover:  #1e1828;
+  --text-preview:          #d4c8e8;
+
+  --border:                #3a2f50;
+  --border-subtle:         #3a2f50;
+  --border-input:          #3a2f50;
+
+  --ink-color:             #d4c8e8;
+  --cursor-color:          #d4c8e8;
+  --selection-bg:          rgba(176, 125, 255, 0.3);
+
+  --btn-save-bg:           #238636;
+  --btn-back-bg:           #3a2f50;
+
+  --burger-bg:             #b07dff;
+  --burger-bar:            white;
+  --burger-hover-bg:       #9060e0;
+
+  --url-color:             #ff7b72;
+  --link-color:            #b07dff;
+  --h3-color:              #b07dff;
+  --code-color:            #d4c8e8;
+  --new-file-color:        #4caf70;
+  --new-file-hover:        #3a9058;
+
+  --about-bg:              #261f36;
+  --about-name-color:      #d4c8e8;
+  --about-version-color:   #7060a0;
+}
+
+.cm-cursor { border-left-color: #d4c8e8 !important; border-left-width: 2px !important; }
+.cm-content { caret-color: #d4c8e8 !important; }

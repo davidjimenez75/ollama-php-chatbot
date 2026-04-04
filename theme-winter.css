@@ -1,0 +1,59 @@
+:root {
+  --accent:                #4a6f98;
+  --accent-hover:          #3a5f88;
+  --accent-light:          #8898b0;
+  --accent-shadow:         rgba(74, 111, 152, 0.1);
+
+  --bg-body:               linear-gradient(135deg, #7a8898 0%, #6a7888 50%, #5c6878 100%);
+  --bg-content:            #a0a8b0;
+  --bg-select:             #9098a8;
+  --bg-input:              #9098a8;
+  --bg-file-item:          #9098a8;
+  --bg-toolbar:            #9098a8;
+  --bg-preview:            #b4b8bc;
+  --bg-dropdown:           #a0a8b0;
+  --bg-hover:              #8890a0;
+  --bg-toolbar-hover:      #8090a0;
+  --bg-code:               #9098a8;
+  --bg-editor:             #b4b8bc;
+
+  --shadow-content:        rgba(0, 0, 0, 0.18);
+  --shadow-dropdown:       rgba(0, 0, 0, 0.22);
+  --shadow-modal:          rgba(0, 0, 0, 0.28);
+
+  --text-primary:          #111111;
+  --text-secondary:        #585858;
+  --text-muted:            #585858;
+  --text-hint:             #585858;
+  --text-select:           #111111;
+  --text-input:            #111111;
+  --text-file-item:        #111111;
+  --text-file-item-hover:  #f0f4f8;
+  --text-preview:          #111111;
+
+  --border:                #666666;
+  --border-subtle:         #666666;
+  --border-input:          #666666;
+
+  --ink-color:             #111111;
+  --cursor-color:          #000000;
+  --selection-bg:          rgba(74, 111, 152, 0.35);
+
+  --btn-save-bg:           rgba(40, 167, 69, 0.45);
+  --btn-back-bg:           #788090;
+
+  --burger-bg:             rgba(20, 40, 60, 0.2);
+  --burger-bar:            #111111;
+  --burger-hover-bg:       rgba(20, 40, 60, 0.4);
+
+  --url-color:             #a03030;
+  --link-color:            #1a44aa;
+  --h3-color:              #2d5070;
+  --code-color:            #111111;
+  --new-file-color:        #2a6040;
+  --new-file-hover:        #1f4d32;
+
+  --about-bg:              #a0a8b0;
+  --about-name-color:      #111111;
+  --about-version-color:   #585858;
+}
