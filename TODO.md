@@ -2,59 +2,48 @@
 
 ---
 
-### - [x] 5. [[docs/toc.md]] Auto-generate table of contents in docs.php from H1 headings
+### - [x] 6. [[docs/docs.md]] docs.php — document viewer for conversations and thematic folders
 
-After a file is rendered in `docs.php`, scan the content for H1 headings (lines starting with `#` in the raw markdown, or `<h1>` elements in the rendered HTML) and inject a small TOC block at the top of the content area.
-
-**Implementation notes:**
-
-- Run after `renderContent()` populates `#content-inner`.
-- Query all `h1` elements inside `#content-inner` and add an `id` attribute to each (slugified from the heading text) if not already present.
-- Build a TOC block: a `<nav id="toc">` with one `<a>` per H1, linking to `#slug`.
-- Inject it as the first child of `#content-inner`.
-- Style it in small font (`font-size: 0.82em`), using `var(--text-secondary)` and `var(--accent)` for links, with a bottom border to separate it from the content.
-- Hide the TOC if fewer than 2 H1s are found (not worth showing for a single heading).
-- Only applies to `.md` and `.txt` files — skip for `.mermaid` and `.csv`.
+- Sidebar file tree with collapsible folders and sort toggle (▼/▲, saved in localStorage)
+- Sidebar toggle button (◀/▶) in the content header to show/hide the tree panel
+- Resizable sidebar — draggable with mouse and touch (tablet support)
+- Supported file types: `.md`, `.txt`, `.csv`, `.mermaid`
+- `.csv` renders as an HTML table; `.mermaid` renders as a diagram
+- Auto-generated TOC from H1 headings (numbered, 2-line clamp, smooth scroll)
+- Auto-loads today's conversation (`conversations/YYYY-MM-DD.md`) on startup if it exists
+- 6 themes selectable from the content header (persisted in localStorage)
+- Configurable scan folders via `DOCS_SCAN_DIRS` in `config.php`
 
 ---
 
-### - [x] 2. [[docs/themes.md]] Create multiple theme-*.css on root folders
+### - [x] 5. [[docs/toc.md]] Auto-generate table of contents in docs.php from H1 headings
 
 ---
 
 ### - [x] 4. [[docs/multi-host.md]] Support multiple Ollama hosts with automatic fallback
 
-Replace the single `API_URL` string constant with an `OLLAMA_HOSTS` array of base URLs in `config.php`:
-
-```php
-define('OLLAMA_HOSTS', [
-    'http://localhost:11434',
-    'http://192.168.1.10:11434',
-]);
-```
-
-**Implementation notes:**
-
-- Drop `shell_exec('ollama list')` in `ollama.php` — it only works locally. Replace `loadModels()` with a REST call to `GET /api/tags` on the active host, which works both locally and remotely.
-- Add `findWorkingHost()` in the `Ollama` class: iterate `OLLAMA_HOSTS`, call `GET {host}/api/tags`, return and cache the first host that responds as `$this->activeHost`.
-- Derive all endpoint URLs dynamically: `$this->activeHost . '/api/generate'` and `$this->activeHost . '/api/tags'`.
-- On `generateResponse()` curl failure, remove the failed host from the list and retry with the next one.
-- Remove the old `API_URL` constant from `config.php`.
+- `OLLAMA_HOSTS` array in `config.php` replaces single `API_URL`
+- `findWorkingHost()` probes each host via `GET /api/tags`, caches the first responding
+- `loadModels()` switched from `shell_exec('ollama list')` to REST API — works remotely
+- `generateResponse()` retries with next host on curl failure
 
 ---
 
 ### - [x] 3. [[docs/offline-assets.md]] Download all external JS and CSS files to the project root for offline use
 
-Currently loaded from CDN in `index.php`:
-- `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css`
-- `https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js`
-- `https://cdn.jsdelivr.net/npm/marked/marked.min.js`
+- `highlight.min.js`, `marked.min.js`, `default.min.css` bundled in project root
+- `mermaid.min.js` bundled for docs.php
 
-Download them directly into the project root (`./`) and update the `<link>` and `<script>` tags in `index.php` to use local paths.
+---
+
+### - [x] 2. [[docs/themes.md]] Create multiple theme-*.css on root folders
+
+- 6 themes: `dark`, `light`, `dawn`, `dusk`, `fog`, `winter`
+- Theme selector in hamburger menu (index.php) and content header (docs.php)
+- Fog and Winter: removed gradients, fixed TOC link contrast
 
 ---
 
 ### - [x] 1. [[docs/config.php.md]] Create a constant on the config.php to force the chatbox only to one model
 
 ---
-
