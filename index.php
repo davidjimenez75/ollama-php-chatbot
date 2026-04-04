@@ -79,7 +79,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception('Missing required fields: model and message');
         }
         
-        $selected_model = htmlspecialchars($data['model']);
+        $selected_model = (defined('FORCED_MODEL') && FORCED_MODEL !== '')
+            ? htmlspecialchars(FORCED_MODEL)
+            : htmlspecialchars($data['model']);
         $message = htmlspecialchars($data['message']);
         
         $response = $ollama->generateResponse($selected_model, $message);
@@ -101,14 +103,18 @@ restore_error_handler();
 
 
 // List all the models
-$model_list = $ollama->getModelList();
+if (defined('FORCED_MODEL') && FORCED_MODEL !== '') {
+    $model_list = [['name' => FORCED_MODEL, 'description' => '']];
+} else {
+    $model_list = $ollama->getModelList();
 
-// Move Llama3.1 to the beginning of the list
-$default_model_key = array_search($my_default_model, array_column($model_list, 'name'));
-if ($default_model_key !== false) {
-    $default_model = $model_list[$default_model_key];
-    unset($model_list[$default_model_key]);
-    array_unshift($model_list, $default_model);
+    // Move default model to the beginning of the list
+    $default_model_key = array_search($my_default_model, array_column($model_list, 'name'));
+    if ($default_model_key !== false) {
+        $default_model = $model_list[$default_model_key];
+        unset($model_list[$default_model_key]);
+        array_unshift($model_list, $default_model);
+    }
 }
 
 // Get debug information if in debug mode
@@ -213,11 +219,15 @@ $debug_info = $debug_mode ? $ollama->getDebugInfo() : null;
 <body>
     <button id="theme-toggle">💡</button>
     <div class="container">
-        <select id="model-select">
-            <?php foreach ($model_list as $model): ?>
-                <option value="<?= htmlspecialchars($model['name']) ?>"><?= htmlspecialchars($model['name']) ?></option>
-            <?php endforeach; ?>
-        </select>
+        <?php if (defined('FORCED_MODEL') && FORCED_MODEL !== ''): ?>
+            <input type="hidden" id="model-select" value="<?= htmlspecialchars(FORCED_MODEL) ?>">
+        <?php else: ?>
+            <select id="model-select">
+                <?php foreach ($model_list as $model): ?>
+                    <option value="<?= htmlspecialchars($model['name']) ?>"><?= htmlspecialchars($model['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        <?php endif; ?>
         
         <div id="chat-window"></div>
         <textarea id="chat-input" placeholder="Type a message (Ctrl + Enter to send)"  rows="13"></textarea>
