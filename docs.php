@@ -110,34 +110,6 @@ foreach ($scanDirs as $dirName) {
     }
 }
 
-function renderTree(array $nodes, int $depth = 0): string {
-    $html = '';
-    foreach ($nodes as $node) {
-        if ($node['type'] === 'file') {
-            $icon = match($node['ext']) {
-                'mermaid' => '🔗',
-                'csv'     => '📊',
-                'txt'     => '📝',
-                default   => '📄',
-            };
-            $html .= '<div class="doc-file" data-rel="' . htmlspecialchars($node['rel']) . '" data-ext="' . htmlspecialchars($node['ext']) . '" style="padding-left:' . ($depth * 14) . 'px">'
-                   . '<span class="file-icon">' . $icon . '</span>'
-                   . '<span class="file-name">' . htmlspecialchars($node['name']) . '</span>'
-                   . '</div>';
-        } else {
-            $html .= '<div class="doc-dir" style="padding-left:' . ($depth * 14) . 'px">'
-                   . '<span class="dir-toggle">▶</span>'
-                   . '<span class="dir-name">' . htmlspecialchars($node['name']) . '</span>'
-                   . '</div>'
-                   . '<div class="dir-children collapsed">'
-                   . renderTree($node['children'], $depth + 1)
-                   . '</div>';
-        }
-    }
-    return $html;
-}
-
-$sidebarHtml = renderTree($tree);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -401,6 +373,35 @@ body {
     overflow-x: auto;
 }
 
+/* Table of contents */
+#toc {
+    font-size: 0.82em;
+    line-height: 1.8;
+    margin-bottom: 1.5em;
+    padding: 0.6em 1em;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--bg-body);
+    color: var(--text-secondary);
+    counter-reset: toc-counter;
+}
+#toc a {
+    display: block;
+    color: var(--accent);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    counter-increment: toc-counter;
+}
+#toc a::before {
+    content: counter(toc-counter) ". ";
+    color: var(--text-secondary);
+    min-width: 1.8em;
+    display: inline-block;
+}
+#toc a:hover { color: var(--accent-hover); text-decoration: underline; }
+
 /* Status tags: [ ] [_] [x] [>] [?] [!] */
 .tag-todo, .tag-done, .tag-progress, .tag-question, .tag-alert {
     display: inline-block;
@@ -422,7 +423,20 @@ body {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0; }
 }
+/* Sort toggle button */
+#sort-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    line-height: 1;
+}
+#sort-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
 </style>
+<script>const TREE_DATA = <?= json_encode($tree, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 </head>
 <body>
 
@@ -431,11 +445,10 @@ body {
   <div id="sidebar">
     <div id="sidebar-header">
       <span>📚 Docs</span>
+      <button id="sort-toggle" title="Toggle sort order">▼</button>
       <a href="./index.php" title="Back to Homepage">🏠</a>
     </div>
-    <div id="sidebar-tree">
-      <?= $sidebarHtml ?>
-    </div>
+    <div id="sidebar-tree"></div>
   </div>
 
   <!-- Resize handle -->
@@ -649,6 +662,35 @@ body {
         if (mermaidNodes.length > 0) {
             mermaid.run({ nodes: mermaidNodes });
         }
+
+        // Build TOC from H1 headings (md and txt only)
+        if (ext === 'md' || ext === 'txt') {
+            buildToc(container);
+        }
+    }
+
+    function slugify(text) {
+        return text.toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .trim()
+            .replace(/[\s]+/g, '-');
+    }
+
+    function buildToc(container) {
+        const headings = [...container.querySelectorAll('h1')];
+        if (headings.length < 2) return;
+
+        headings.forEach(h => {
+            if (!h.id) h.id = slugify(h.textContent);
+        });
+
+        const nav = document.createElement('nav');
+        nav.id = 'toc';
+        nav.innerHTML = headings.map(h =>
+            `<a href="#${escAttr(h.id)}">${escHtml(h.textContent)}</a>`
+        ).join('');
+
+        container.insertBefore(nav, container.firstChild);
     }
 
     // Walk text nodes and wrap status tags with styled spans.
@@ -747,19 +789,74 @@ body {
         }
     }
 
+    // --- Tree rendering (JS-side) ---
+    const FILE_ICONS = { mermaid: '🔗', csv: '📊', txt: '📝' };
+
+    function renderTreeHtml(nodes, depth) {
+        depth = depth || 0;
+        let html = '';
+        nodes.forEach(node => {
+            if (node.type === 'file') {
+                const icon = FILE_ICONS[node.ext] || '📄';
+                html += `<div class="doc-file" data-rel="${escAttr(node.rel)}" data-ext="${escAttr(node.ext)}" style="padding-left:${depth * 14}px">`
+                      + `<span class="file-icon">${icon}</span>`
+                      + `<span class="file-name">${escHtml(node.name)}</span>`
+                      + `</div>`;
+            } else {
+                html += `<div class="doc-dir" style="padding-left:${depth * 14}px">`
+                      + `<span class="dir-toggle">▶</span>`
+                      + `<span class="dir-name">${escHtml(node.name)}</span>`
+                      + `</div>`
+                      + `<div class="dir-children collapsed">`
+                      + renderTreeHtml(node.children || [], depth + 1)
+                      + `</div>`;
+            }
+        });
+        return html;
+    }
+
+    function sortNodes(nodes, dir) {
+        const sorted = [...nodes].sort((a, b) => {
+            const cmp = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+            return dir === 'desc' ? -cmp : cmp;
+        });
+        return sorted.map(node => node.type === 'dir' && node.children
+            ? Object.assign({}, node, { children: sortNodes(node.children, dir) })
+            : node
+        );
+    }
+
+    // --- Sort toggle ---
+    const LS_SORT    = 'cuadernos-sort';
+    const sortToggle = document.getElementById('sort-toggle');
+    const sidebarTree = document.getElementById('sidebar-tree');
+    let sortDir = localStorage.getItem(LS_SORT) || 'desc';
+
+    function applySort(dir) {
+        sortDir = dir;
+        sortToggle.textContent = dir === 'desc' ? '▼' : '▲';
+        try { localStorage.setItem(LS_SORT, dir); } catch(e) {}
+        sidebarTree.innerHTML = renderTreeHtml(sortNodes(TREE_DATA, dir), 0);
+        if (currentRel) {
+            const el = sidebarTree.querySelector(`.doc-file[data-rel="${CSS.escape(currentRel)}"]`);
+            if (el) el.classList.add('active');
+        }
+    }
+
+    sortToggle.addEventListener('click', () => applySort(sortDir === 'desc' ? 'asc' : 'desc'));
+
     // --- Initial load ---
     const params = new URLSearchParams(location.search);
     const initialFile = params.get('file');
+
+    applySort(sortDir); // render tree before querying DOM
 
     if (initialFile) {
         expandToFile(initialFile);
         loadFile(initialFile);
     } else {
-        // Try to load README.md if it exists in the sidebar
-        const readmeEl = document.querySelector('.doc-file[data-rel="README.md"]');
-        if (readmeEl) {
-            loadFile('README.md');
-        }
+        const readmeEl = sidebarTree.querySelector('.doc-file[data-rel="README.md"]');
+        if (readmeEl) loadFile('README.md');
     }
 
     // --- Resizable sidebar ---

@@ -364,7 +364,7 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
         <?php else: ?>
             <select id="model-select">
                 <?php foreach ($model_list as $model): ?>
-                    <option value="<?= htmlspecialchars($model['name']) ?>"><?= htmlspecialchars($model['name']) ?></option>
+                    <option value="<?= htmlspecialchars($model['name']) ?>"><?= htmlspecialchars(preg_replace('/:latest$/i', '', $model['name'])) ?></option>
                 <?php endforeach; ?>
             </select>
         <?php endif; ?>
@@ -387,7 +387,8 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
         const sendButton = document.getElementById('send-chat');
         const modelSelect = document.getElementById('model-select');
         const themeToggle = document.getElementById('theme-toggle');
-        let currentModel = modelSelect.value; // Set default model to the first option (Llama3.1)
+        let currentModel = modelSelect.value;
+        const displayModel = name => name.replace(/:latest$/i, '');
 
         function appendMessage(sender, message, isError = false, isUser = false) {
             const messageDiv = document.createElement('div');
@@ -440,7 +441,7 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
                 })
                 .then(data => {
                     if (data.success) {
-                        appendMessage(currentModel, data.response);
+                        appendMessage(displayModel(currentModel), data.response);
                         if (data.warning) {
                             chatInput.value = data.warning;
                         }
@@ -468,7 +469,7 @@ $app_version = trim(file_get_contents('VERSION.md') ?: 'unknown');
 
         modelSelect.addEventListener('change', function() {
             currentModel = modelSelect.value;
-            appendMessage('<hr>System', `Changed model to ${currentModel}`);
+            appendMessage('<hr>System', `Changed model to ${displayModel(currentModel)}`);
         });
 
         // Hamburger menu & theme switcher

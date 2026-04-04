@@ -2,6 +2,22 @@
 
 ---
 
+### - [x] 5. [[docs/toc.md]] Auto-generate table of contents in docs.php from H1 headings
+
+After a file is rendered in `docs.php`, scan the content for H1 headings (lines starting with `#` in the raw markdown, or `<h1>` elements in the rendered HTML) and inject a small TOC block at the top of the content area.
+
+**Implementation notes:**
+
+- Run after `renderContent()` populates `#content-inner`.
+- Query all `h1` elements inside `#content-inner` and add an `id` attribute to each (slugified from the heading text) if not already present.
+- Build a TOC block: a `<nav id="toc">` with one `<a>` per H1, linking to `#slug`.
+- Inject it as the first child of `#content-inner`.
+- Style it in small font (`font-size: 0.82em`), using `var(--text-secondary)` and `var(--accent)` for links, with a bottom border to separate it from the content.
+- Hide the TOC if fewer than 2 H1s are found (not worth showing for a single heading).
+- Only applies to `.md` and `.txt` files — skip for `.mermaid` and `.csv`.
+
+---
+
 ### - [x] 2. [[docs/themes.md]] Create multiple theme-*.css on root folders
 
 ---
