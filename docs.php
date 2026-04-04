@@ -165,6 +165,13 @@ body {
     transition: background 0.15s;
     position: relative;
     z-index: 10;
+    touch-action: none;
+}
+#sidebar-resizer::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: -8px; right: -8px;
 }
 #sidebar-resizer:hover,
 #sidebar-resizer.dragging { background: var(--accent); }
@@ -698,11 +705,24 @@ body {
             if (!h.id) h.id = slugify(h.textContent);
         });
 
+        const scrollEl = document.getElementById('content');
         const nav = document.createElement('nav');
         nav.id = 'toc';
-        nav.innerHTML = headings.map(h =>
-            `<a href="#${escAttr(h.id)}">${escHtml(h.textContent)}</a>`
-        ).join('');
+
+        headings.forEach(h => {
+            const a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.textContent = h.textContent;
+            a.addEventListener('click', e => {
+                e.preventDefault();
+                const top = h.getBoundingClientRect().top
+                          - scrollEl.getBoundingClientRect().top
+                          + scrollEl.scrollTop
+                          - 16;
+                scrollEl.scrollTo({ top, behavior: 'smooth' });
+            });
+            nav.appendChild(a);
+        });
 
         container.insertBefore(nav, container.firstChild);
     }
@@ -884,28 +904,37 @@ body {
 
         let startX, startW;
 
-        resizer.addEventListener('mousedown', e => {
-            startX = e.clientX;
+        function dragStart(clientX) {
+            startX = clientX;
             startW = sidebar.getBoundingClientRect().width;
             resizer.classList.add('dragging');
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
-            e.preventDefault();
-        });
+        }
 
-        document.addEventListener('mousemove', e => {
+        function dragMove(clientX) {
             if (!resizer.classList.contains('dragging')) return;
-            const w = Math.min(600, Math.max(140, startW + (e.clientX - startX)));
+            const w = Math.min(600, Math.max(140, startW + (clientX - startX)));
             sidebar.style.width = w + 'px';
-        });
+        }
 
-        document.addEventListener('mouseup', () => {
+        function dragEnd() {
             if (!resizer.classList.contains('dragging')) return;
             resizer.classList.remove('dragging');
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
             localStorage.setItem(LS_SIDEBAR, parseInt(sidebar.style.width, 10));
-        });
+        }
+
+        // Mouse
+        resizer.addEventListener('mousedown', e => { dragStart(e.clientX); e.preventDefault(); });
+        document.addEventListener('mousemove', e => dragMove(e.clientX));
+        document.addEventListener('mouseup', dragEnd);
+
+        // Touch
+        resizer.addEventListener('touchstart', e => { dragStart(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+        document.addEventListener('touchmove',  e => { if (resizer.classList.contains('dragging')) { dragMove(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+        document.addEventListener('touchend', dragEnd);
     }());
 
     // --- Sidebar toggle ---
